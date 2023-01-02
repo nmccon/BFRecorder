@@ -1,0 +1,90 @@
+TITLE:: BFRecorder
+summary:: Simple GUI for recording B-format signals
+categories:: Undocumented classes
+related:: Classes/Recorder, Guides/ATK-Glossary
+​
+DESCRIPTION::
+Incredibly simple utility for quickly recording B-format signals. It uses a ListView and a TextField to append additional information to the file name of the recorded audio.
+image::bfrecorderGUI.png::
+​​
+code::
+
+~bfRec = BFRecorder.new(recpath: ~renderPath,recorder:  ~recorder, hoaOrder: ~order, node: ~fxGroup, bus: ~hoaBusDict[\encodingBus], numChans: ~numChannels, vstfx: ~fluxReverb);
+//221219_151927_HOA3_recording info here[ ACN, N3D ].wav'
+::
+​
+CLASSMETHODS::
+​
+METHOD:: new
+argument:: recpath
+argument:: recorder
+argument:: hoaOrder
+argument:: node
+argument:: bus
+argument:: numChans
+argument:: vstfx
+​
+INSTANCEMETHODS::
+​
+METHOD:: node
+The group on which to place the recorder
+​
+METHOD:: numChans
+The number of channels to record - usually order.asHoaOrder.size;
+​
+METHOD:: recpath
+The location of the recording.
+Recordings named as Date.getDate.stamp, hoaOrder, ListView selections, TextField text
+​
+METHOD:: recorder
+The recorder instance
+​
+METHOD:: vstfx
+Optional - load a VST chain e.g. reverb using a VST via VSTPluginController
+​
+METHOD:: hoaOrder
+​Ambisonic order
+
+METHOD:: bus
+​Input bus for the recorder
+
+METHOD:: init
+​private
+​
+EXAMPLES::
+​
+code::
+(
+~order = 3;
+~freq = 30.0;
+~numChannels = ~order.asHoaOrder.size;
+~recorder = Recorder(s).recHeaderFormat_("WAV").recSampleFormat_("float");
+~renderPath = PathName((thisProcess.nowExecutingPath)).parentPath+/+"Recordings"+/+"ATK-ACN-N3D/";
+
+~reset = {
+	s.newBusAllocators;
+	ServerBoot.removeAll;
+	ServerTree.removeAll;
+	ServerQuit.removeAll;
+	Window.closeAll;
+};
+
+ServerBoot.add(~buses);
+ServerQuit.add(~reset);
+
+~nodes = {
+	s.bind({
+		~decodingGroup = Group.new();
+		~encodingGroup = Group.before(~decodingGroup);
+		~fxGroup = Group.after(~encodingGroup);
+		~decoder = Synth(\hoa_binaural_stereo, [\inBus, ~hoaBusDict[\encodingBus], \which, 0], ~decodingGroup, addAction: 'addToTail');
+		~fluxReverb = VSTPluginController(Synth(\reverb_ambix_hoa3, [\hoaIn, ~hoaBusDict[\fxBus], \reverbOut, ~hoaBusDict[\encodingBus]], ~fxGroup)).open("VerbV3-x64");
+		~bfRec.node_(~fxGroup);
+		~bfRec.vstfx_(~fluxReverb);
+	})
+};
+
+~bfRec = BFRecorder.new(~renderPath, ~recorder, ~order, ~fxGroup, ~hoaBusDict[\encodingBus], ~numChannels, ~fluxReverb);
+)
+::
+​
